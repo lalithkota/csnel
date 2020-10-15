@@ -26,4 +26,4 @@ version = "1.0"
 features = ["spin_no_std"]
 
 [package.metadata.bootimage]
-run-args = []
+run-args = ["-netdev","tap,id=mynet0,script=./scripts/tap-up,downscript=./scripts/tap-down", "-device", "rtl8139,netdev=mynet0"]
