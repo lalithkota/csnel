@@ -6,14 +6,14 @@
 
 extern crate rlibc;
 
-use core::panic::PanicInfo;
-
 mod vga_buffer;
 mod interrupts;
 mod gdt;
 mod pic_init;
 mod pci;
-mod eth_driver;
+mod rtl8139_eth_driver;
+
+use core::panic::PanicInfo;
 
 fn init_interrupts(){
     gdt::init();
@@ -43,7 +43,7 @@ pub extern "C" fn _start() -> ! {
     init_interrupts();
 
     pci::pci_init();
-    eth_driver::eth_driver_init();
+    rtl8139_eth_driver::rtl8139_eth_driver_init();
     // loop {
     //     use crate::print;
     //     print!("-");

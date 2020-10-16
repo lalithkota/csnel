@@ -4,7 +4,7 @@ use super::PCI_LIST;
 pub fn check_pci_list(){
     for i in 0..32 {
 
-        let pci_dev = unsafe{PCI_LIST[i]};
+        let pci_dev = PCI_LIST.lock().list[i];
 
         if pci_dev.vendor_id == 0xFFFF {
             break;
