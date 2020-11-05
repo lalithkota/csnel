@@ -11,7 +11,7 @@ mod interrupts;
 mod gdt;
 mod pic_init;
 mod pci;
-mod rtl8139_eth_driver;
+mod eth_driver;
 
 use core::panic::PanicInfo;
 
@@ -43,7 +43,7 @@ pub extern "C" fn _start() -> ! {
     init_interrupts();
 
     pci::pci_init();
-    rtl8139_eth_driver::rtl8139_eth_driver_init();
+    eth_driver::eth_driver_init();
     // loop {
     //     use crate::print;
     //     print!("-");

@@ -36,3 +36,10 @@ pub fn pci_init(){
     // msi::_print_sta_com();
     // msi::_enable_msi();
 }
+
+#[macro_export]
+macro_rules! get_pci_dev_from_index {
+    ($index : expr) => {
+        crate::pci::PCI_LIST.lock().list[$index]
+    };
+}
