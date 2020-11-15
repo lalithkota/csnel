@@ -67,6 +67,9 @@ impl PciDevice{
         }
         ret
     }
+    pub fn get_irq_pin_line(&self, func : u8) -> u16{
+        (pci_config_read_word(self.bus_no, self.slot_no, func, 0x3C) & 0xFFFF) as u16
+    }
 }
 
 impl Copy for PciDevice { }

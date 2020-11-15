@@ -3,4 +3,5 @@
 TAPDEV="$1"
 BRIDGEDEV="bridge0"
 
-ifconfig $BRIDGEDEV deletem $TAPDEV
+# ifconfig $BRIDGEDEV deletem $TAPDEV
+# route -n flush

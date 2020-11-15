@@ -5,21 +5,13 @@
 
 extern crate rlibc;
 
-pub mod vga_buffer;
+pub mod vga;
 pub mod interrupts;
-pub mod gdt;
-pub mod pic_init;
 pub mod pci;
 pub mod eth_driver;
+pub mod net;
 
 use core::panic::PanicInfo;
-
-pub fn init_interrupts(){
-    gdt::init();
-    interrupts::init_idt();
-    unsafe { pic_init::PICS.lock().initialize()};
-    x86_64::instructions::interrupts::enable();
-}
 
 /// This function is called on panic.
 #[panic_handler]

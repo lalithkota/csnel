@@ -70,8 +70,12 @@ Take a brief look at the above method just to get a idea.
 
 ## 3. Whats working
 
-- Done: Print interface. Interrupts. Hardware faults. PIC. Keyboard inputs. PCI configuration. Ethernet drivers. Ethernet packet sending.
-- No netowork stack nor web framework is built, yet. WIP. (So yeah. Cant yet deploy a web server unikernel.) (General unikernels can be made though.)
+- Done: Print interface. Interrupts. Hardware faults. PIC. Keyboard inputs. PCI configuration. Ethernet drivers.
+- RTL interrupts are not working, but when i poll the isr it is working. So mostly the second-PIC is not initialized correctly.
+- On the receive side, even after getting the RxOK interrupt (on polling), the rx_buffer is fully empty. All zeros. Have to figure out why.
+- [No netowork stack nor web framework is built, yet. WIP. (So yeah. Cant yet deploy a web server unikernel.) (General unikernels can be made though.)]
+- Experimental virtualbox run is also implemented. `./csnel.sh runvb` . But it is having some problem with the image/binary type of the unikernel. The final output image is raw format image. So it cant be mounted as cd/dvd. When mounted as raw floppy, it gives no errors. But it cant start the vm.  
+- Aiming to compress the docker image size, by using a different base image.
 
 ## 4. Credits
 

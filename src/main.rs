@@ -6,21 +6,13 @@
 
 extern crate rlibc;
 
-mod vga_buffer;
+mod vga;
 mod interrupts;
-mod gdt;
-mod pic_init;
 mod pci;
 mod eth_driver;
+mod net;
 
 use core::panic::PanicInfo;
-
-fn init_interrupts(){
-    gdt::init();
-    interrupts::init_idt();
-    unsafe { pic_init::PICS.lock().initialize()};
-    x86_64::instructions::interrupts::enable();
-}
 
 /// This function is called on panic.
 #[panic_handler]
@@ -40,10 +32,11 @@ pub fn hlt_loop() -> ! {
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");
 
-    init_interrupts();
+    interrupts::init_interrupts();
 
     pci::pci_init();
     eth_driver::eth_driver_init();
+    net::init();
     // loop {
     //     use crate::print;
     //     print!("-");

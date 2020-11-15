@@ -2,5 +2,9 @@
 
 TAPDEV="$1"
 BRIDGEDEV="bridge0"
+STATIC_IP="192.168.0.200"
+GATEWAY_IP="192.168.0.1"
 
 ifconfig $BRIDGEDEV addm $TAPDEV
+# ifconfig $TAPDEV $STATIC_IP netmask 255.255.255.0
+# route -n add -net $STATIC_IP $GATEWAY_IP
