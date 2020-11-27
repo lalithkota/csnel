@@ -1,5 +1,5 @@
 
-use x86_64::{PhysAddr, VirtAddr};
+use x86_64::{VirtAddr};
 
 pub use x86_64::structures::paging::PageTable;
 pub use x86_64::structures::paging::OffsetPageTable;
