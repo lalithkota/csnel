@@ -7,7 +7,7 @@ pub trait EthDriver {
     fn load_driver(&mut self);
     fn get_mac_addr(&self) -> [u8 ; 6];
     fn print_mac_addr(&self);
-    fn update_rx_buffer_ptr(&mut self);
+    fn update_rx_buffer_ptr(&mut self) -> bool;
     fn mask_tok_rok(&self);
     fn set_receive_buff_rules(&self);
     fn start_te_re(&self);

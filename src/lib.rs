@@ -34,6 +34,6 @@ pub fn init(boot_info:&'static BootInfo){
    interrupts::init_interrupts();
    let mapper=unsafe {memory::init(boot_info.physical_memory_offset)};
    pci::pci_init();
-   eth_driver::eth_driver_init();
+   eth_driver::eth_driver_init(&mapper);
    net::init();
 }

@@ -35,13 +35,18 @@ impl RTL8139EthDriver {
             current_desc : 0x0,
             rb_start : 0,
             my_rx_ptr_offset : 0,
-            rx_buffer : [0xAA ; RX_BUFF_SIZE],
+            rx_buffer : [0 ; RX_BUFF_SIZE],
         }
         // ret.rb_start = ret.get_rx_buffer_ptr_as_u32();
     }
-    pub fn get_rx_buffer_ptr_as_u32(&mut self) -> u32 {
-        let ret : *mut [u8 ; RX_BUFF_SIZE] = &mut self.rx_buffer;
-        ret as u32
+    pub fn get_rx_buffer_ptr_as_u64(&mut self,mapper : &crate::memory::OffsetPageTable<'static>) -> u64 {
+        use x86_64::structures::paging::MapperAllSizes;
+        use x86_64::VirtAddr;
+        let address : u64 = &mut self.rx_buffer as *mut [u8 ; RX_BUFF_SIZE] as u64;
+        let virt = VirtAddr::new(address);
+        let phys = mapper.translate_addr(virt);
+        println!("rtl_rx_buffer adrees as follows : {:?} -> {:?}", virt, phys);
+        phys.unwrap().as_u64()
     }
 
     pub fn transmit_packet(&mut self, packet_addr : u32, packet_size : usize){
@@ -145,9 +150,13 @@ impl EthDriver for RTL8139EthDriver {
         println!("Finished , Received RST");
     }
 
-    fn update_rx_buffer_ptr(&mut self){
-        self.rb_start = self.get_rx_buffer_ptr_as_u32();
+    fn update_rx_buffer_ptr(&mut self) -> bool{
+
+        if self.rb_start==0{
+            return false;
+        }
         unsafe{Port::new(self.base_addr + 0x30).write(self.rb_start);}
+        true
     }
 
     fn mask_tok_rok(&self){
