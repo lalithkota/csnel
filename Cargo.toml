@@ -14,7 +14,7 @@ panic = "abort"
 
 [dependencies]
 rlibc = ">= 1.0.0"
-bootloader = ">= 0.9.8"
+bootloader = { version = ">=0.9.8", features = ["map_physical_memory"]}
 volatile = "0.2.6"
 spin = "0.5.2"
 x86_64 = "0.12.1"
@@ -24,6 +24,6 @@ lazy_static={version=">=1.0", features=["spin_no_std"]}
 
 [package.metadata.bootimage]
 # run-args = ["-netdev","tap,id=mynet0,script=scripts/tap-up,downscript=scripts/tap-down", "-device", "rtl8139,netdev=mynet0,mac=12:34:56:87:90:12"]
-run-args = ["-netdev","user,id=mynet0,hostfwd=tcp::8080-:80", "-device", "rtl8139,netdev=mynet0,mac=12:34:56:87:90:12"]
+run-args = ["-netdev","user,id=mynet0,hostfwd=tcp::8800-:80", "-device", "rtl8139,netdev=mynet0,mac=12:34:56:87:90:12"]
 # run-args = ["-netdev","socket,id=mynet0,listen=:8010", "-device", "rtl8139,netdev=mynet0,mac=12:34:56:87:90:12"]
 # run-args = ["-netdev","socket,id=mynet0,connect=:8010", "-device", "rtl8139,netdev=mynet0"]

@@ -2,14 +2,14 @@
 #![no_main]
 
 #![feature(abi_x86_interrupt)]
-#![feature(llvm_asm)]
 
 extern crate csnel;
 
 mod mymain;
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    mymain::starter();
+csnel::entry_point!(kernel_main);
+
+fn kernel_main(boot_info: &'static csnel::BootInfo) -> !{
+    mymain::starter(boot_info);
     csnel::hlt_loop();
 }

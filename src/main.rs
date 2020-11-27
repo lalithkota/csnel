@@ -2,52 +2,14 @@
 #![no_main]
 
 #![feature(abi_x86_interrupt)]
-#![feature(llvm_asm)]
 
-extern crate rlibc;
+extern crate csnel;
 
-mod vga;
-mod interrupts;
-mod pci;
-mod eth_driver;
-mod net;
+mod mymain;
 
-use core::panic::PanicInfo;
+csnel::entry_point!(kernel_main);
 
-/// This function is called on panic.
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    hlt_loop();
-}
-
-pub fn hlt_loop() -> ! {
-    loop {
-        x86_64::instructions::hlt();
-    }
-}
-
-
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    println!("Hello World{}", "!");
-
-    interrupts::init_interrupts();
-
-    pci::pci_init();
-    eth_driver::eth_driver_init();
-    net::init();
-    // loop {
-    //     use crate::print;
-    //     print!("-");
-    // }
-    // fn stack_overflow(){
-    //     stack_overflow();
-    // }
-    // stack_overflow();
-    //
-    // x86_64::instructions::interrupts::int3();
-
-    println!("It did not crash!");
-    hlt_loop();
+fn kernel_main(boot_info: &'static csnel::BootInfo) -> !{
+    mymain::starter(boot_info);
+    csnel::hlt_loop();
 }

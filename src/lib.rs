@@ -10,9 +10,11 @@ pub mod interrupts;
 pub mod pci;
 pub mod eth_driver;
 pub mod net;
+pub mod memory;
 
 use core::panic::PanicInfo;
-
+pub use bootloader::entry_point;
+pub use bootloader::BootInfo;
 /// This function is called on panic.
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
@@ -24,4 +26,14 @@ pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
     }
+}
+
+pub fn init(boot_info:&'static BootInfo){
+    println!("Hello World{}", "!");
+
+   interrupts::init_interrupts();
+   let mapper=unsafe {memory::init(boot_info.physical_memory_offset)};
+   pci::pci_init();
+   eth_driver::eth_driver_init();
+   net::init();
 }

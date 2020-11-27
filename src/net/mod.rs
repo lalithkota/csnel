@@ -1,25 +1,23 @@
+pub mod head_struct;
+
 use crate::eth_driver;
 use crate::println;
 use crate::print;
 use x86_64;
 use eth_driver::EthDriver;
 use x86_64::instructions::port::Port;
+use head_struct::EthernetHeader;
 
 const ETH_HEADER_SIZE : usize = 14;
 
+
 pub fn init(){
-
-    // const PACKET_SIZE : usize = 512;
-    let src_mac = unsafe{eth_driver::ETH_DEV.get_mac_addr()};
-    let mut packet  = EthernetHeader::new(src_mac , [0xFF as u8 ; 6], 0x0800 as u16);
-    // let mut packet : [u8; PACKET_SIZE] = [0;PACKET_SIZE];
-    let packet_addr : *mut EthernetHeader = &mut packet;
-    // loop{
-        unsafe{eth_driver::ETH_DEV.transmit_packet(packet_addr as u32,ETH_HEADER_SIZE)};
-    // }
-
-    // x86_64::instructions::interrupts::int43();
     loop{
+        deal();
+       }
+}
+
+fn deal(){
         let temp1 : u16 = unsafe{Port::new(eth_driver::ETH_DEV.base_addr + 0x3E).read()};
         if temp1 & 0b0100 != 0{
             println!("TOK INt received");
@@ -42,24 +40,22 @@ pub fn init(){
             for i  in 0..cbr_temp as usize{
                 unsafe{print!("{:#x}\t",eth_driver::ETH_DEV.rx_buffer[i]);}
             }
-
-            loop{}
-
-            let mut cr_reg : u8 = unsafe{Port::new(eth_driver::ETH_DEV.base_addr + 0x37).read()};
-            while cr_reg & 1 == 0 {
-                let pack_header : u16 = unsafe{*((eth_driver::ETH_DEV.rb_start + eth_driver::ETH_DEV.my_rx_ptr_offset as u32) as *mut u16)};
-                unsafe{eth_driver::ETH_DEV.my_rx_ptr_offset += 2};
-                let pack_size : u16 = unsafe{*((eth_driver::ETH_DEV.rb_start + eth_driver::ETH_DEV.my_rx_ptr_offset as u32) as *mut u16)};
-                unsafe{eth_driver::ETH_DEV.my_rx_ptr_offset += 2};
-                println!("Rok fine {:#x} {:#x}",pack_header,pack_size);
-
-                cr_reg = unsafe{Port::new(eth_driver::ETH_DEV.base_addr + 0x37).read()};
-            }
         }
     }
+
+
+pub fn test_transmit(){
+    // const PACKET_SIZE : usize = 512;
+    let src_mac = unsafe{eth_driver::ETH_DEV.get_mac_addr()};
+    let mut packet  = EthernetHeader::new(src_mac , [0xFF as u8 ; 6], 0x0800 as u16);
+    // let mut packet : [u8; PACKET_SIZE] = [0;PACKET_SIZE];
+    let packet_addr : *mut EthernetHeader = &mut packet;
+    // loop{
+        unsafe{eth_driver::ETH_DEV.transmit_packet(packet_addr as u32,ETH_HEADER_SIZE)};
+    // }
+
+    // x86_64::instructions::interrupts::int43();
 }
-
-
 // #[repr(packed)]
 // struct UdpHeader {
 //   source_port: u16,
@@ -120,20 +116,3 @@ pub fn init(){
 // }
 //
 //
-#[repr(packed)]
-struct EthernetHeader {
-  dest: [u8; 6],
-  src: [u8; 6],
-  eth_type: u16,
-}
-
-impl EthernetHeader {
-  fn new(src: [u8; 6], dest: [u8; 6], eth_type: u16) -> EthernetHeader {
-    EthernetHeader {
-      dest: dest,
-      src: src,
-      eth_type: eth_type,
-    }
-  }
-
-}
