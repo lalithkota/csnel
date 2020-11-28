@@ -11,5 +11,5 @@ pub trait EthDriver {
     fn mask_tok_rok(&self);
     fn set_receive_buff_rules(&self);
     fn start_te_re(&self);
-    // fn transmit_packet(&mut self,packet_addr : u32, packet_size : usize);
+    unsafe fn transmit_packet(&mut self, packet_addr : u32, packet_size : usize);
 }

@@ -40,45 +40,13 @@ impl RTL8139EthDriver {
         // ret.rb_start = ret.get_rx_buffer_ptr_as_u32();
     }
     pub fn get_rx_buffer_ptr_as_u64(&mut self,mapper : &crate::memory::OffsetPageTable<'static>) -> u64 {
-        use x86_64::structures::paging::MapperAllSizes;
+        use crate::memory::MapperAllSizes;
         use x86_64::VirtAddr;
         let address : u64 = &mut self.rx_buffer as *mut [u8 ; RX_BUFF_SIZE] as u64;
         let virt = VirtAddr::new(address);
         let phys = mapper.translate_addr(virt);
         println!("rtl_rx_buffer adrees as follows : {:?} -> {:?}", virt, phys);
         phys.unwrap().as_u64()
-    }
-
-    pub fn transmit_packet(&mut self, packet_addr : u32, packet_size : usize){
-        // let mut packet : [u8; PACKET_SIZE]= [0x00; PACKET_SIZE];
-        // let packet_addr : *mut [u8; PACKET_SIZE] = &mut packet;
-        unsafe{
-            // let current_desc_usize = CURRENT_DESC as usize;
-
-            Port::new(self.base_addr + TSAD[self.current_desc]).write(packet_addr);
-
-            let mut temp_tsd : u32;// = Port::new(self.base_addr + TSD[self.current_desc]).read();
-            temp_tsd = ( packet_size as u32 ) & !((1<<13) as u32);
-            Port::new(self.base_addr + TSD[self.current_desc]).write(temp_tsd);
-
-            loop {
-                temp_tsd = Port::new(self.base_addr + TSD[self.current_desc]).read();
-                if temp_tsd & 1<<14 != 0{
-                    println!("TUN");
-                }
-                // if temp_tsd & 1<<13 != 0{
-                //     println!("OWN set");
-                // }
-                if temp_tsd & 1<<15 != 0{
-                    // println!("TOK");
-                    break;
-                }
-
-            }
-            // println!("Out of loop");
-
-            self.current_desc = (self.current_desc + 1)%4;
-        }
     }
 }
 
@@ -102,6 +70,39 @@ impl EthDriver for RTL8139EthDriver {
         self.start_te_re();
 
         // self.transmit_packet();
+    }
+	unsafe fn transmit_packet(&mut self, packet_addr : u32, packet_size : usize){
+        // let mut packet : [u8; PACKET_SIZE]= [0x00; PACKET_SIZE];
+        // let packet_addr : *mut [u8; PACKET_SIZE] = &mut packet;
+		
+		// unsafe{
+		// let current_desc_usize = CURRENT_DESC as usize;
+
+		Port::new(self.base_addr + TSAD[self.current_desc]).write(packet_addr);
+
+		let mut temp_tsd : u32;// = Port::new(self.base_addr + TSD[self.current_desc]).read();
+		temp_tsd = ( packet_size as u32 ) & !((1<<13) as u32);
+		Port::new(self.base_addr + TSD[self.current_desc]).write(temp_tsd);
+
+		loop {
+			temp_tsd = Port::new(self.base_addr + TSD[self.current_desc]).read();
+			if temp_tsd & 1<<14 != 0{
+				println!("TUN");
+			}
+			// if temp_tsd & 1<<13 != 0{
+			//     println!("OWN set");
+			// }
+			if temp_tsd & 1<<15 != 0{
+				// println!("TOK");
+				break;
+			}
+
+		}
+		// println!("Out of loop");
+
+		self.current_desc = (self.current_desc + 1)%4;
+		
+		// }
     }
 
     fn get_base_address(&self) -> u32{
@@ -129,12 +130,13 @@ impl EthDriver for RTL8139EthDriver {
     fn get_mac_addr(&self) -> [u8;6]{
         let mac_addr_0_4 : u32 = unsafe { Port::new(self.base_addr).read()};
         let mac_addr_5_8 : u32 = unsafe { Port::new(self.base_addr+4).read()};
-        let ret : [u8 ; 6] = [(mac_addr_5_8 >> 8) as u8, (mac_addr_5_8 >> 0) as u8, (mac_addr_0_4 >> 24) as u8, (mac_addr_0_4 >> 16) as u8, (mac_addr_0_4 >> 8) as u8, (mac_addr_0_4 >> 0) as u8];
+        // let ret : [u8 ; 6] = [(mac_addr_5_8 >> 8) as u8, (mac_addr_5_8 >> 0) as u8, (mac_addr_0_4 >> 24) as u8, (mac_addr_0_4 >> 16) as u8, (mac_addr_0_4 >> 8) as u8, (mac_addr_0_4 >> 0) as u8];
+		let ret : [u8 ; 6] = [(mac_addr_0_4 >> 0) as u8, (mac_addr_0_4 >> 8) as u8, (mac_addr_0_4 >> 16) as u8, (mac_addr_0_4 >> 24) as u8, (mac_addr_5_8 >> 0) as u8, (mac_addr_5_8 >> 8) as u8];
         ret
     }
     fn print_mac_addr(&self){
         let ret : [u8 ; 6] = self.get_mac_addr();
-        println!("MAC addr : {:#X}-{:#X}-{:#X}-{:#X}-{:#X}-{:#X}",ret[5],ret[4],ret[3],ret[2],ret[1],ret[0]);
+        println!("MAC addr : {:#X}-{:#X}-{:#X}-{:#X}-{:#X}-{:#X}",ret[0],ret[1],ret[2],ret[3],ret[4],ret[5]);
     }
 
     fn turn_on(&self){

@@ -1,6 +1,6 @@
+use x86_64::VirtAddr;
 
-use x86_64::{VirtAddr};
-
+pub use x86_64::structures::paging::MapperAllSizes;
 pub use x86_64::structures::paging::PageTable;
 pub use x86_64::structures::paging::OffsetPageTable;
 

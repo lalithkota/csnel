@@ -1,7 +1,6 @@
 #![no_std]
 
 #![feature(abi_x86_interrupt)]
-#![feature(llvm_asm)]
 
 extern crate rlibc;
 
@@ -13,8 +12,10 @@ pub mod net;
 pub mod memory;
 
 use core::panic::PanicInfo;
+
 pub use bootloader::entry_point;
 pub use bootloader::BootInfo;
+
 /// This function is called on panic.
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
@@ -29,11 +30,11 @@ pub fn hlt_loop() -> ! {
 }
 
 pub fn init(boot_info:&'static BootInfo){
-    println!("Hello World{}", "!");
+	println!("Hello World{}", "!");
 
-   interrupts::init_interrupts();
-   let mapper=unsafe {memory::init(boot_info.physical_memory_offset)};
-   pci::pci_init();
-   eth_driver::eth_driver_init(&mapper);
-   net::init();
+	interrupts::init_interrupts();
+	let mapper = unsafe{memory::init(boot_info.physical_memory_offset)};
+	pci::pci_init();
+	eth_driver::eth_driver_init(&mapper);
+	net::init(&mapper);
 }
