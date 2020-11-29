@@ -61,7 +61,10 @@ fn deal(mapper : &OffsetPageTable<'static>){
 			let tcp_header = unsafe {&*(&ETH_DEV.rx_buffer[ETH_DEV.my_rx_ptr_offset as usize] as *const u8  as *const TCPHeader)};
 			unsafe{ETH_DEV.my_rx_ptr_offset+= TCPHeader::size_of()};
 
-			if tcp_header.is_syn() {
+			if tcp_header.is_ack() & tcp_header.is_syn() {
+				println!("TCP: Thats weird");
+			}
+			else if tcp_header.is_syn() & (!tcp_header.is_ack()){
 
 				if tcp_header.get_data_off() > 5{
 					println!("tcp: Options Received");
@@ -77,7 +80,7 @@ fn deal(mapper : &OffsetPageTable<'static>){
 					tcp::tcp_opt_deal(eth_header, ip_header, tcp_header, options, option_size, mapper);
 				}
 			}
-			else{
+			else if (!tcp_header.is_syn()) & tcp_header.is_ack(){
 				tcp::tcp_deal(eth_header, ip_header, tcp_header, mapper);
 			}
 		}

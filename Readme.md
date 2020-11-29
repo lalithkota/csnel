@@ -71,11 +71,18 @@ Take a brief look at the above method just to get a idea.
 ## 3. Whats working
 
 - Done: Print interface. Interrupts. Hardware faults. PIC. Keyboard inputs. PCI configuration. Ethernet drivers.
-- RTL interrupts are not working, but when i poll the isr it is working. So mostly the second-PIC is not initialized correctly.
-- On the receive side, even after getting the RxOK interrupt (on polling), the rx_buffer is fully empty. All zeros. Have to figure out why.
-- [No netowork stack nor web framework is built, yet. WIP. (So yeah. Cant yet deploy a web server unikernel.) (General unikernels can be made though.)]
-- Experimental virtualbox run is also implemented. `./csnel.sh runvb` . But it is having some problem with the image/binary type of the unikernel. The final output image is raw format image. So it cant be mounted as cd/dvd. When mounted as raw floppy, it gives no errors. But it cant start the vm.  
+  - Memory: paging and address translation done. No dynamic memory allocation as of now.
+- RTL interrupts are not working, but when the isr is polled it is working. So mostly the second-PIC is not initialized correctly.
+  - Update: after unmasking this interrupt index in the pic, the interrupts started working as well. But it is left masked for now, because polling works alright. Maybe will change in future.
+- ~~On the receive side, even after getting the RxOK interrupt (on polling), the rx_buffer is fully empty. All zeros. Have to figure out why.~~
+  - Update: Our doubts were true. RTL's rb_start needs buffer's physical address (previously simply the virtual address was passed). So, once simple paging & address conversion is implemented, and when the buffer's phys_addr is updated, it started working as well.
+- ~~No netowork stack nor web framework is built, yet. WIP. (So yeah. Cant yet deploy a web server unikernel.) (General unikernels can be made though.)~~
+  - Update: Lot of progress made. A pseudo/dummy network stack is built. It can even make simple HTTP transactions. YAY.
+- Experimental virtualbox run is also implemented. `./csnel.sh runvb` . But it is having some problem with the image/binary type of the unikernel. The final output image is raw format image. So it cant be mounted as cd/dvd. When mounted as raw floppy, it gives no errors. But it cant start the vm.
+  - Update: will try to mount it as disk drive only. By using clonevdi, and creating a raw disk vdi image. ~~TODO~~.
+  - Update: Apparently the above doesnt work. Will try to use vmdk file descriptor, and use raw image. TODO.
 - Aiming to compress the docker image size, by using a different base image.
+  - Update: After changing to rust:alpine base, the filesize actually increased (~2.0GiB). Will try to make modifications. Or will go back to using, previous. TODO.
 
 ## 4. Credits
 
