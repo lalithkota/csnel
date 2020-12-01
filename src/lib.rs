@@ -29,12 +29,11 @@ pub fn hlt_loop() -> ! {
     }
 }
 
-pub fn init(boot_info:&'static BootInfo){
-	println!("Hello World{}", "!");
-
+pub fn init(boot_info:&'static BootInfo) -> (bool,crate::memory::OffsetPageTable<'static>){
 	interrupts::init_interrupts();
 	let mapper = unsafe{memory::init(boot_info.physical_memory_offset)};
 	pci::pci_init();
 	eth_driver::eth_driver_init(&mapper);
 	net::init(&mapper);
+	(true, mapper)
 }

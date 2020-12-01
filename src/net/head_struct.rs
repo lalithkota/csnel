@@ -2,6 +2,65 @@ use crate::println;
 
 #[derive(Copy,Clone)]
 #[repr(C)]
+pub struct DHCPHeader{
+	pub op : u8,
+	pub htype : u8,
+	pub hlen : u8,
+	pub hops : u8,
+	pub xid : [u8;4],
+	pub secs : [u8;2],
+	pub flags : [u8;2],
+	pub ciaddr : [u8;4],
+	pub yiaddr : [u8;4],
+	pub siaddr : [u8;4],
+	pub giaddr : [u8;4],
+	pub chaddr : [u8;4*4],
+	pub legacy : [u8;192],
+	pub cookie : [u8;4],
+	
+}
+impl DHCPHeader{
+	pub fn pretty_print(&self){
+	}
+	pub fn size_of() -> u16{
+		(1+1+1+1+4+2+2+4+4+4+4+4*4+192+4) as u16
+	}
+}
+
+#[derive(Copy,Clone)]
+#[repr(C)]
+pub struct UDPHeader{
+	pub src_port : [u8;2],
+	pub dest_port : [u8;2],
+	pub len : [u8;2],
+	pub checksum : [u8;2],
+}
+impl UDPHeader{
+	pub fn pretty_print(&self){
+		println!("UDPHeader");
+		println!("\t src_port {}", ((self.src_port[0] as u16)<<8)| (self.src_port[1] as u16));
+		println!("\t dest_port {}", ((self.dest_port[0] as u16)<<8)| (self.dest_port[1] as u16));
+		println!("\t len {}", self.get_len());
+		println!("\t checksum {:#x}", ((self.checksum[0] as u16)<<8)| (self.checksum[1] as u16));
+	}
+	pub fn size_of() -> u16{
+		(2+2+2+2) as u16
+	}
+	pub fn get_len(&self) -> u16{
+		((self.len[0] as u16)<<8) | (self.len[1] as u16)
+	}
+	pub fn set_checksum(&mut self, chec : u16){
+		self.checksum[0] = ((chec>>8) & 0xFF) as u8;
+		self.checksum[1] = (chec & 0xFF) as u8;
+	}
+	pub fn set_len(&mut self, l : u16){
+		self.len[0] = ((l>>8) & 0xFF) as u8;
+		self.len[1] = (l & 0xFF) as u8;
+	}
+}
+
+#[derive(Copy,Clone)]
+#[repr(C)]
 pub struct TCPHeader {
     pub src_port: [u8;2],
 	pub dest_port: [u8;2],
@@ -17,11 +76,11 @@ pub struct TCPHeader {
 impl TCPHeader{
     pub fn pretty_print(&self){
         println!("TCP HEADER");
-        println!("source  port{}",((self.src_port[0] as u16) << 8)| self.src_port[1] as u16 );
-        println!("dest  port{}",((self.dest_port[0] as u16) << 8)| self.dest_port[1] as u16 );
-        println!("seq no{:#x}",((self.seq_no[0] as u32) << 24)| ((self.seq_no[1] as u32) << 16) | ((self.seq_no[2] as u32) << 8) | (self.seq_no[3] as u32));
-        println!("ack no{:#x}",((self.ack_no[0] as u32) << 24)| ((self.ack_no[1] as u32) << 16) | ((self.ack_no[2] as u32) << 8) | (self.ack_no[3] as u32));
-
+        println!("\t source  port{}",((self.src_port[0] as u16) << 8)| self.src_port[1] as u16 );
+        println!("\t dest  port{}",((self.dest_port[0] as u16) << 8)| self.dest_port[1] as u16 );
+        println!("\t seq no{:#x}",((self.seq_no[0] as u32) << 24)| ((self.seq_no[1] as u32) << 16) | ((self.seq_no[2] as u32) << 8) | (self.seq_no[3] as u32));
+        println!("\t ack no{:#x}",((self.ack_no[0] as u32) << 24)| ((self.ack_no[1] as u32) << 16) | ((self.ack_no[2] as u32) << 8) | (self.ack_no[3] as u32));
+		// ...
     }
 
     pub fn size_of() -> u16{
@@ -154,10 +213,13 @@ impl IPHeader{
 	pub fn is_tcp(&self) -> bool{
 		self.protocol == 0x06
 	}
-
+	pub fn is_udp(&self) -> bool{
+		self.protocol == 0x11
+	}
+	
     pub fn get_len(&self) -> u16{
         ((self.total_len[0] as u16) << 8) | (self.total_len[1] as u16)
-        }
+	}
 }
 
 #[derive(Copy,Clone)]

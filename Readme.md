@@ -43,8 +43,10 @@ Two methods.
 ```
     use csnel::println;
 
-    pub fn starter(){
-      println!("Hello World");
+    pub fn starter(bootinfo : &'static csnel::BootInfo){
+      println!("Hello World{}","!");
+	  let (_,mapper) = csnel::init(bootinfo);
+	  csnel::net::sample_deal_all(&mapper);
     }
 ```
   - The docker-run and the script will take care of gathering all the required files and building the unikernel.
@@ -58,32 +60,43 @@ Take a brief look at the above method just to get a idea.
 - Get all these files from the `enduser` dir of the repo (NOT from the csnel crate itself). Basically copy-paste the the whole `enduser` folder, as is. Then rename it to your liking. (You can also rename the crate and add author inside this Cargo.toml file)
 - Also install the `llvm-tools-preview`, `rust-src`, using the command `rustup component add llvm-tools-preview rust-src`
 - Also make sure your rust setup is nightly. You don't need to install anything else, the dependencies in the `Cargo.toml` will take care of it.
-- Put your code in `src/mymain.rs` in the "starter" function.
-- `cargo build` command will build your crate.
-- `cargo bootimage` command will create the unikernel-bin. (In `target/x86_64-req/debug` folder)
-- `bootimage runner` will launch the unikernel in qemu for us.
-- Additionally `cargo run` has been configured in the `.cargo/config.toml`. Which will run all the above steps, also launching qemu.
+- In your/enduser's Cargo.toml, also make sure you set the path to csnel crate itself properly (which you get by cloning).
+- Put your code in `src/mymain.rs` in the "starter" function. (Try using example code from 2.1)
+- `cargo run` command will create the unikernel, and launch it in qemu. Additionally,
+	- `cargo build` command will only build your code.
+	- `cargo bootimage` command will build code. Then create the unikernel-bin. (In `target/x86_64-req/debug` folder)
+	- `bootimage runner` command will build code, create unikernel and launch it. `cargo run` is configured to be same as this.
 - The above build commands require target file to be specified. This should be done manually for each of the above commands. Or it can be configured in `.cargo/config.toml`. Which has been taken care of.
 - Done, you should see the qemu already.
 - You can now delete the `src/mymain.rs`, instead simply use the main.rs, if you are convenient.
 - If you are interested in details, follow [phil-os blog](https://os.phil-opp.com) and start everthing from the beginning.
 
-## 3. Whats working
+## 3. Brief Explanation (What the 2.1 example code does)
+
+csnel::init() will initialise everything required for the higher layers of our unikernel to work, like interrupts related stuff, memory related stuff, pci stuff, some drivers, some other network stuff etc.
+csnel::net::sample_deal_all() will try to deal with the incoming traffic.
+It primarily deals with http requests .. but it requires the mapper argument .. which you can get from the second return value of csnel::init()
+
+## 4. Whats working
 
 - Done: Print interface. Interrupts. Hardware faults. PIC. Keyboard inputs. PCI configuration. Ethernet drivers.
   - Memory: paging and address translation done. No dynamic memory allocation as of now.
 - RTL interrupts are not working, but when the isr is polled it is working. So mostly the second-PIC is not initialized correctly.
   - Update: after unmasking this interrupt index in the pic, the interrupts started working as well. But it is left masked for now, because polling works alright. Maybe will change in future.
+  - Update: unable to use the interrupt handler. because when trying to translate VirtAddr to PhysAddr, a page fault is occuring. but the same wont happen in regular execution. So this idea is pretty much halted. (for now)
 - ~~On the receive side, even after getting the RxOK interrupt (on polling), the rx_buffer is fully empty. All zeros. Have to figure out why.~~
   - Update: Our doubts were true. RTL's rb_start needs buffer's physical address (previously simply the virtual address was passed). So, once simple paging & address conversion is implemented, and when the buffer's phys_addr is updated, it started working as well.
 - ~~No netowork stack nor web framework is built, yet. WIP. (So yeah. Cant yet deploy a web server unikernel.) (General unikernels can be made though.)~~
   - Update: Lot of progress made. A pseudo/dummy network stack is built. It can even make simple HTTP transactions. YAY.
+  - Update: working UDP, Working DHCP also done. (Should work with bridged networking also now.)
+  - Update: No filesystem yet. (So have to hardcode html file into string.) Also no tcp exit mechanism yet.
+- No congestion control nor flow control on any layer.. have to work on that.
 - Experimental virtualbox run is also implemented. `./csnel.sh runvb` . But it is having some problem with the image/binary type of the unikernel. The final output image is raw format image. So it cant be mounted as cd/dvd. When mounted as raw floppy, it gives no errors. But it cant start the vm.
   - Update: will try to mount it as disk drive only. By using clonevdi, and creating a raw disk vdi image. ~~TODO~~.
   - Update: Apparently the above doesnt work. Will try to use vmdk file descriptor, and use raw image. TODO.
 - Aiming to compress the docker image size, by using a different base image.
   - Update: After changing to rust:alpine base, the filesize actually increased (~2.0GiB). Will try to make modifications. Or will go back to using, previous. TODO.
 
-## 4. Credits
+## 5. Credits
 
 Huge credits to [Philipp Oppermann's blog posts](https://os.phil-opp.com) for getting us started.

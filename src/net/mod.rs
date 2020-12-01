@@ -2,6 +2,9 @@ pub mod head_struct;
 pub mod arp;
 pub mod ip;
 pub mod tcp;
+pub mod udp;
+pub mod dhcp;
+pub mod temp_http_response;
 
 use crate::println;
 use crate::print;
@@ -19,8 +22,16 @@ pub use head_struct::EthernetHeader;
 pub use head_struct::ARPHeader;
 pub use head_struct::IPHeader;
 pub use head_struct::TCPHeader;
+pub use head_struct::UDPHeader;
+pub use head_struct::DHCPHeader;
 
-pub fn init(mapper : &OffsetPageTable<'static>){
+pub fn init(mapper : &OffsetPageTable<'static>)-> bool{
+	// some other initialsations
+	dhcp::dhcp_discover(mapper);
+	
+	true
+}
+pub fn sample_deal_all(mapper : &OffsetPageTable<'static>){
     loop{
         let interr = interrupt_poller();
         if interr==2 {
@@ -57,36 +68,7 @@ fn deal(mapper : &OffsetPageTable<'static>){
 		let ip_header = unsafe {&*(&ETH_DEV.rx_buffer[ETH_DEV.my_rx_ptr_offset as usize] as *const u8  as *const IPHeader)};
 		unsafe{ETH_DEV.my_rx_ptr_offset+= IPHeader::size_of()};
 
-		if ip_header.is_tcp() {
-			let tcp_header = unsafe {&*(&ETH_DEV.rx_buffer[ETH_DEV.my_rx_ptr_offset as usize] as *const u8  as *const TCPHeader)};
-			unsafe{ETH_DEV.my_rx_ptr_offset+= TCPHeader::size_of()};
-
-			if tcp_header.is_ack() & tcp_header.is_syn() {
-				println!("TCP: Thats weird");
-			}
-			else if tcp_header.is_syn() & (!tcp_header.is_ack()){
-
-				if tcp_header.get_data_off() > 5{
-					println!("tcp: Options Received");
-					let option_size = (tcp_header.get_data_off() as u16 - 5)*4;
-					let options = unsafe {&*(&ETH_DEV.rx_buffer[ETH_DEV.my_rx_ptr_offset as usize] as *const u8  as *const [u8;40])};
-					unsafe{ETH_DEV.my_rx_ptr_offset+= option_size};
-                    println!("data off is {}",tcp_header.get_data_off());
-					tcp::tcp_opt_deal(eth_header, ip_header, tcp_header, options, option_size, mapper);
-				}
-				else if tcp_header.get_data_off() == 5 {
-					let option_size = 0;
-					let options : &[u8;40] = &[0 as u8;40];
-					tcp::tcp_opt_deal(eth_header, ip_header, tcp_header, options, option_size, mapper);
-				}
-			}
-			else if (!tcp_header.is_syn()) & tcp_header.is_ack(){
-				tcp::tcp_deal(eth_header, ip_header, tcp_header, mapper);
-			}
-		}
-		else{
-			println!("Some other ip packet received");
-		}
+		ip::ip_deal(ip_header,eth_header,mapper);
 
 	}
 	else{
@@ -105,7 +87,7 @@ fn deal(mapper : &OffsetPageTable<'static>){
     }
     else{
 		unsafe{ETH_DEV.my_rx_ptr_offset = length_with_ind};
-		unsafe{Port::new(eth_driver::ETH_DEV.base_addr + 0x38).write(ETH_DEV.my_rx_ptr_offset)};
+		unsafe{Port::new(eth_driver::ETH_DEV.base_addr + 0x38).write(ETH_DEV.my_rx_ptr_offset - 16)};
     }
 }
 

@@ -4,10 +4,19 @@ use super::TCPHeader;
 use crate::println;
 use crate::eth_driver::ETH_DEV;
 
-const TEMP_HTTP_RESPONSE :&str = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\n<html>CSNEL IS GOOd & NICE</html>\r\n\n";
+// const TEMP_HTTP_RESPONSE :&str = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\n<html>CSNEL IS GOOd & NICE</html>\r\n\n";
+use super::temp_http_response::TEMP_HTTP_RESPONSE;
+
+pub static TCP_ACCEPT_PORT : spin::Mutex<u16> = spin::Mutex::new(80);
 
 pub fn tcp_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header : &TCPHeader, mapper : & crate::memory::OffsetPageTable<'static>){
 	println!("regular tcp deal");
+	
+	if !compare_ports(tcp_header.dest_port, *TCP_ACCEPT_PORT.lock()){
+		println!("some other port {} {}",((tcp_header.dest_port[0] as u16) <<8)|(tcp_header.dest_port[1] as u16),*TCP_ACCEPT_PORT.lock());
+		return;
+	}
+	
 	let pack_size = ip_header.get_len()-(IPHeader::size_of()+TCPHeader::size_of());
 	println!("pack size {} ",pack_size);
 	if pack_size> 0{
@@ -22,7 +31,7 @@ pub fn tcp_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header 
 			// using str.len() is not right.. :TODO
 			println!("HTTP REQUEST REC!");
 			let packet_as_utf8 = core::str::from_utf8(&tcp_packet[0..pack_size as usize]).unwrap();
-			println!("{}",packet_as_utf8);
+			// println!("{}",packet_as_utf8);
 			
 			let mut final_packet = (*eth_header,*ip_header, *tcp_header, [0u8;800]);
 			for i in 0..TEMP_HTTP_RESPONSE.len(){
@@ -87,6 +96,9 @@ pub fn tcp_opt_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_hea
 		//println!("ip_checksum {:#x} {:#x}",ip_header.calc_checksum(false),((ip_header.checksum[0] as u16) << 8) |ip_header.checksum[1] as u16 );
 		//println!("tcp_checksum {:#x} {:#x}",tcp_header.calc_checksum(false, ip_header,options as *const [u8;40] as usize, option_size as usize),((tcp_header.checksum[0] as u16) << 8) |tcp_header.checksum[1] as u16);
 	}
+}
+pub fn compare_ports(a : [u8;2], b : u16) -> bool{
+	(((a[0] as u16) <<8)|(a[1] as u16)) == b
 }
 
 impl TCPHeader{
