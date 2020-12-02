@@ -2,17 +2,18 @@ use super::EthernetHeader;
 use super::IPHeader;
 use super::TCPHeader;
 use crate::println;
+use crate::eth_driver::EthDriver;
 use crate::eth_driver::ETH_DEV;
 
-const TEMP_HTTP_RESPONSE :&str = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\n<html>CSNEL IS GOOd & NICE</html>\r\n\n";
+use super::temp_http_response::TEMP_HTTP_RESPONSE;
 
-pub fn tcp_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header : &TCPHeader, mapper : & crate::memory::OffsetPageTable<'static>){
+pub fn tcp_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header : &TCPHeader){
 	println!("regular tcp deal");
 	let pack_size = ip_header.get_len()-(IPHeader::size_of()+TCPHeader::size_of());
 	println!("pack size {} ",pack_size);
+	
 	if pack_size> 0{
-		let tcp_packet = unsafe {&*(&ETH_DEV.rx_buffer[ETH_DEV.my_rx_ptr_offset as usize] as *const u8  as *const [u8;800])};
-		unsafe{ETH_DEV.my_rx_ptr_offset+= pack_size};
+		let tcp_packet = unsafe {&*(ETH_DEV.lock().get_from_and_update_buffer(pack_size) as *const [u8;800])};
 		
 		const HTTP_REQ_CHECK : &str = "GET /";
 		let pack_header_as_string = core::str::from_utf8(&tcp_packet[0..HTTP_REQ_CHECK.len()]).unwrap();
@@ -22,7 +23,7 @@ pub fn tcp_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header 
 			// using str.len() is not right.. :TODO
 			println!("HTTP REQUEST REC!");
 			let packet_as_utf8 = core::str::from_utf8(&tcp_packet[0..pack_size as usize]).unwrap();
-			println!("{}",packet_as_utf8);
+			// println!("{}",packet_as_utf8);
 			
 			let mut final_packet = (*eth_header,*ip_header, *tcp_header, [0u8;800]);
 			for i in 0..TEMP_HTTP_RESPONSE.len(){
@@ -44,19 +45,14 @@ pub fn tcp_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header 
 			final_packet.2.set_ack(true);
 			final_packet.2.set_checksum(final_packet.2.calc_checksum(false,&final_packet.1, &final_packet.3 as *const [u8] as *const u8 as usize, TEMP_HTTP_RESPONSE.len()));
 			
-			use x86_64::VirtAddr;
-			use crate::memory::MapperAllSizes;
-			use crate::eth_driver::eth_driver_trait::EthDriver;
-			let phys = mapper.translate_addr(VirtAddr::new(&final_packet as *const (EthernetHeader,IPHeader,TCPHeader,[u8;800]) as u64));
-			unsafe{ETH_DEV.transmit_packet(phys.unwrap().as_u64() as u32, (EthernetHeader::size_of() +IPHeader::size_of() + TCPHeader::size_of()) as usize + TEMP_HTTP_RESPONSE.len())};
-			super::interrupt_poller();
+			super::transmit_packet(&final_packet as *const (EthernetHeader,IPHeader,TCPHeader,[u8;800]) as u64,(EthernetHeader::size_of() +IPHeader::size_of() + TCPHeader::size_of()) as usize + TEMP_HTTP_RESPONSE.len());
 		}
 		
 		crate::hlt_loop();
 	}
 }
 
-pub fn tcp_opt_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header : &TCPHeader, options : &[u8;40], option_size : u16, mapper : &crate::memory::OffsetPageTable<'static>){
+pub fn tcp_opt_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_header : &TCPHeader, options : &[u8;40], option_size : u16){
 	if tcp_header.is_syn() {
 		let mut final_packet = (*eth_header,*ip_header,*tcp_header,*options);
 
@@ -76,12 +72,7 @@ pub fn tcp_opt_deal(eth_header : &EthernetHeader, ip_header : &IPHeader, tcp_hea
 		final_packet.2.set_ack(true);
 		final_packet.2.set_checksum(final_packet.2.calc_checksum(false,&final_packet.1,options as *const [u8;40] as usize, option_size as usize));
 
-		use x86_64::VirtAddr;
-		use crate::memory::MapperAllSizes;
-		use crate::eth_driver::eth_driver_trait::EthDriver;
-		let phys = mapper.translate_addr(VirtAddr::new(&final_packet as *const (EthernetHeader,IPHeader,TCPHeader,[u8;40]) as u64));
-		unsafe{ETH_DEV.transmit_packet(phys.unwrap().as_u64() as u32, (EthernetHeader::size_of() +IPHeader::size_of() + TCPHeader::size_of() + option_size) as usize)};
-		super::interrupt_poller();
+		super::transmit_packet(&final_packet as *const (EthernetHeader,IPHeader,TCPHeader,[u8;40]) as u64,(EthernetHeader::size_of() +IPHeader::size_of() + TCPHeader::size_of() + option_size) as usize);
 
 
 		//println!("ip_checksum {:#x} {:#x}",ip_header.calc_checksum(false),((ip_header.checksum[0] as u16) << 8) |ip_header.checksum[1] as u16 );

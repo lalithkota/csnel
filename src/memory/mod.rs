@@ -4,10 +4,15 @@ pub use x86_64::structures::paging::MapperAllSizes;
 pub use x86_64::structures::paging::PageTable;
 pub use x86_64::structures::paging::OffsetPageTable;
 
-pub unsafe fn init(phy_mem_offset: u64 ) -> OffsetPageTable<'static> {
-    let physical_memory_offset=VirtAddr::new(phy_mem_offset);
-    let level_4_table = active_level_4_table(physical_memory_offset);
-    OffsetPageTable::new(level_4_table, physical_memory_offset)
+pub static mut MAPPER_PTR : u64 = 0;
+
+pub fn init_memory(phys_mem_off : u64) -> OffsetPageTable<'static>{
+    let physical_memory_offset = VirtAddr::new(phys_mem_off);
+	let level_4_table = unsafe{active_level_4_table(physical_memory_offset)};
+	// unsafe{MAPPER_PTR = &OffsetPageTable::new(level_4_table, physical_memory_offset) as *const OffsetPageTable<'static>};
+	// unsafe{MAPPER_PTR = &mut ret as *mut OffsetPageTable<'static>;}
+	// unsafe{&*MAPPER_PTR}
+	unsafe{OffsetPageTable::new(level_4_table, physical_memory_offset)}
 }
 unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut PageTable {
     use x86_64::registers::control::Cr3;

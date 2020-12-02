@@ -28,13 +28,14 @@ lazy_static! {
 }
 
 
-pub fn pci_init(){
+pub fn init_pci() -> bool{
     // check_bus::check_bus(0);
     PCI_LIST.lock().load();
     check_pci_list::check_pci_list();
 
     // msi::_print_sta_com();
     // msi::_enable_msi();
+	true
 }
 
 #[macro_export]

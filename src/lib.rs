@@ -29,12 +29,18 @@ pub fn hlt_loop() -> ! {
     }
 }
 
-pub fn init(boot_info:&'static BootInfo){
-	println!("Hello World{}", "!");
-
-	interrupts::init_interrupts();
-	let mapper = unsafe{memory::init(boot_info.physical_memory_offset)};
-	pci::pci_init();
-	eth_driver::eth_driver_init(&mapper);
-	net::init(&mapper);
+pub fn init(boot_info:&'static BootInfo) -> (bool,memory::OffsetPageTable<'static>){
+	loop{
+		while interrupts::init_interrupts() {
+			let mapper = memory::init_memory(boot_info.physical_memory_offset);
+			unsafe{crate::memory::MAPPER_PTR = &mapper as *const crate::memory::OffsetPageTable<'static> as u64};
+			while pci::init_pci() {
+				while eth_driver::init_eth_driver() {
+					while net::init_net() {
+						return (true,mapper);
+					}
+				}
+			}
+		}
+	}
 }

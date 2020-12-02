@@ -39,9 +39,13 @@ impl RTL8139EthDriver {
         }
         // ret.rb_start = ret.get_rx_buffer_ptr_as_u32();
     }
-    pub fn get_rx_buffer_ptr_as_u64(&mut self,mapper : &crate::memory::OffsetPageTable<'static>) -> u64 {
-        use crate::memory::MapperAllSizes;
+    pub fn get_rx_buffer_ptr_as_u64(&mut self) -> u64 {
         use x86_64::VirtAddr;
+		use crate::memory::MapperAllSizes;
+		unsafe{if crate::memory::MAPPER_PTR as u64 ==0{
+			println!("yes zero Frnd");
+		}}
+		let mapper = unsafe{&*(crate::memory::MAPPER_PTR as *const crate::memory::OffsetPageTable<'static>)};
         let address : u64 = &mut self.rx_buffer as *mut [u8 ; RX_BUFF_SIZE] as u64;
         let virt = VirtAddr::new(address);
         let phys = mapper.translate_addr(virt);
@@ -71,21 +75,21 @@ impl EthDriver for RTL8139EthDriver {
 
         // self.transmit_packet();
     }
-	unsafe fn transmit_packet(&mut self, packet_addr : u32, packet_size : usize){
+	fn transmit_packet(&mut self, packet_addr : u32, packet_size : usize){
         // let mut packet : [u8; PACKET_SIZE]= [0x00; PACKET_SIZE];
         // let packet_addr : *mut [u8; PACKET_SIZE] = &mut packet;
 		
 		// unsafe{
 		// let current_desc_usize = CURRENT_DESC as usize;
 
-		Port::new(self.base_addr + TSAD[self.current_desc]).write(packet_addr);
+		unsafe{Port::new(self.base_addr + TSAD[self.current_desc]).write(packet_addr);}
 
 		let mut temp_tsd : u32;// = Port::new(self.base_addr + TSD[self.current_desc]).read();
 		temp_tsd = ( packet_size as u32 ) & !((1<<13) as u32);
-		Port::new(self.base_addr + TSD[self.current_desc]).write(temp_tsd);
+		unsafe{Port::new(self.base_addr + TSD[self.current_desc]).write(temp_tsd);}
 
 		loop {
-			temp_tsd = Port::new(self.base_addr + TSD[self.current_desc]).read();
+			temp_tsd = unsafe{Port::new(self.base_addr + TSD[self.current_desc]).read()};
 			if temp_tsd & 1<<14 != 0{
 				println!("TUN");
 			}
@@ -162,7 +166,7 @@ impl EthDriver for RTL8139EthDriver {
     }
 
     fn mask_tok_rok(&self){
-        unsafe{Port::new(self.base_addr + 0x3C).write(0xFFFF as u16);}
+        unsafe{Port::new(self.base_addr + 0x3C).write(0b1111111 as u16);}
     }
 
     fn set_receive_buff_rules(&self){
@@ -172,4 +176,9 @@ impl EthDriver for RTL8139EthDriver {
     fn start_te_re(&self){
         unsafe{Port::new(self.base_addr + 0x37).write(0x0C as u8);}
     }
+	fn get_from_and_update_buffer(&mut self, size : u16) -> *const u8{
+		let buff_ptr = self.my_rx_ptr_offset;
+		self.my_rx_ptr_offset += size;
+		&self.rx_buffer[buff_ptr as usize] as *const u8
+	}
 }
