@@ -15,7 +15,7 @@ Now available on a [docker image](https://hub.docker.com/r/lalithkota/csnel).
 - Similarly, no `std` functionalities can be used. Because those have to be built ourselves, according to our application's need.
 - What is Csnel now? It aims to provide a user-friendly
 mechanism to build & run rust-based unikernels. (also this primarily aims to be a http/web server unikernel maker) (Also please note "aims to". WIP.)
-  - Also, as previously said, no std functionalities can be used. So csnel tries to provide for those functionalities. (Ex: print/println) (See Section 3 in this)
+  - Also, as previously said, no std functionalities can be used. So csnel tries to provide for those functionalities. (Ex: print/println) (See "Whats working" section in this)
 
 ## 2. How to Use
 
@@ -44,7 +44,7 @@ Two methods.
     use csnel::println;
 
     pub fn starter(bootinfo : &'static csnel::BootInfo){
-      println!("Hello World{}","!");
+    	  println!("Hello World{}","!");
 	  let (_,mapper) = csnel::init(bootinfo);
 	  csnel::net::sample_deal_all(&mapper);
     }
@@ -63,9 +63,9 @@ Take a brief look at the above method just to get a idea.
 - In your/enduser's Cargo.toml, also make sure you set the path to csnel crate itself properly (which you get by cloning).
 - Put your code in `src/mymain.rs` in the "starter" function. (Try using example code from 2.1)
 - `cargo run` command will create the unikernel, and launch it in qemu. Additionally,
-	- `cargo build` command will only build your code.
-	- `cargo bootimage` command will build code. Then create the unikernel-bin. (In `target/x86_64-req/debug` folder)
-	- `bootimage runner` command will build code, create unikernel and launch it. `cargo run` is configured to be same as this.
+  - `cargo build` command will only build your code.
+  - `cargo bootimage` command will build code. Then create the unikernel-bin. (In `target/x86_64-req/debug` folder)
+  - `bootimage runner` command will build code, create unikernel and launch it. `cargo run` is configured to be same as this.
 - The above build commands require target file to be specified. This should be done manually for each of the above commands. Or it can be configured in `.cargo/config.toml`. Which has been taken care of.
 - Done, you should see the qemu already.
 - You can now delete the `src/mymain.rs`, instead simply use the main.rs, if you are convenient.
@@ -84,18 +84,21 @@ It primarily deals with http requests .. but it requires the mapper argument .. 
 - RTL interrupts are not working, but when the isr is polled it is working. So mostly the second-PIC is not initialized correctly.
   - Update: after unmasking this interrupt index in the pic, the interrupts started working as well. But it is left masked for now, because polling works alright. Maybe will change in future.
   - Update: unable to use the interrupt handler. because when trying to translate VirtAddr to PhysAddr, a page fault is occuring. but the same wont happen in regular execution. So this idea is pretty much halted. (for now)
+    - Update: a new branch is made where this is dealt with, but still not 100% ok. See branches.
 - ~~On the receive side, even after getting the RxOK interrupt (on polling), the rx_buffer is fully empty. All zeros. Have to figure out why.~~
   - Update: Our doubts were true. RTL's rb_start needs buffer's physical address (previously simply the virtual address was passed). So, once simple paging & address conversion is implemented, and when the buffer's phys_addr is updated, it started working as well.
 - ~~No netowork stack nor web framework is built, yet. WIP. (So yeah. Cant yet deploy a web server unikernel.) (General unikernels can be made though.)~~
   - Update: Lot of progress made. A pseudo/dummy network stack is built. It can even make simple HTTP transactions. YAY.
-  - Update: working UDP, Working DHCP also done. (Should work with bridged networking also now.)
+  - Update: working UDP, Working DHCP also done. (Should work with bridged networking also now. TODO.)
+    - Update: When using bridged networking (qemu's tap mode), dhcp doesnt work as expected. Guessing there is something wrong with udp checksum. And also mabe Qemu slirp doesnt care about udp checksum, because DHCP does work on slirp, but doesnt work outside/real network.
   - Update: No filesystem yet. (So have to hardcode html file into string.) Also no tcp exit mechanism yet.
 - No congestion control nor flow control on any layer.. have to work on that.
 - Experimental virtualbox run is also implemented. `./csnel.sh runvb` . But it is having some problem with the image/binary type of the unikernel. The final output image is raw format image. So it cant be mounted as cd/dvd. When mounted as raw floppy, it gives no errors. But it cant start the vm.
   - Update: will try to mount it as disk drive only. By using clonevdi, and creating a raw disk vdi image. ~~TODO~~.
   - Update: Apparently the above doesnt work. Will try to use vmdk file descriptor, and use raw image. TODO.
 - Aiming to compress the docker image size, by using a different base image.
-  - Update: After changing to rust:alpine base, the filesize actually increased (~2.0GiB). Will try to make modifications. Or will go back to using, previous. TODO.
+  - Update: After changing to rust:alpine base, the filesize actually increased (~2.0GiB). Will try to make modifications. Or will go back to using, previous. ~~TODO~~
+  - Going back to oiginal because, final image size with rust:alpine base is slighter higher than that of regular alpine base, and rustup installes image.
 
 ## 5. Credits
 
